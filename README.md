@@ -1,65 +1,41 @@
-### Overview
+This fork fixes the outdated font awesome icons issue in the navbar:
+https://github.com/rstudio/rmarkdown/issues/1554
 
-[![Build Status](https://travis-ci.org/rstudio/rmarkdown.svg?branch=master)](https://travis-ci.org/rstudio/rmarkdown)
-[![Downloads from the RStudio CRAN mirror](https://cranlogs.r-pkg.org/badges/rmarkdown)](https://cran.r-project.org/package=rmarkdown)
+To install this version of rmarkdown with the icon fix until the bug is fixed use:
+`devtools::install_github('jhelvy/rmarkdown')`
 
-The **rmarkdown** package helps you create dynamic analysis documents that combine code, rendered output (such as figures), and prose. You bring your data, code, and ideas, and R Markdown renders your content into a polished document that can be used to:
+Following the advice in the open issue, replace the `navbar_icon_dependencies()` function in the `html_dependencies.R` file with this:
+```
+navbar_icon_dependencies <- function(navbar) {
 
-<img src="https://bookdown.org/yihui/rmarkdown/images/hex-rmarkdown.png" alt="The rmarkddown hex sticker" align="right" width="200" style="padding: 0 15px; float: right;"/>
+    # read the navbar source
+    source <- read_utf8(navbar)
 
-- Do data science interactively within the RStudio IDE,
+    # find icon references
+    res <- regexec('<(span|i) +class *= *("|\') *(fab fa|fas fa|ion ion)-', source)
+    matches <- regmatches(source, res)
+    libs <- c()
+    for (match in matches) {
+        if (length(match) > 0)
+            libs <- c(libs, match[[4]])
+    }
+    libs <- unique(libs)
 
-- Reproduce your analyses,
-
-- Collaborate and share code with others, and
-
-- Communicate your results with others.
-
-R Markdown documents can be rendered to many output formats including HTML documents, PDFs, Word files, slideshows, and more, allowing you to focus on the content while R Markdown takes care of your presentation. 
-
-
-### Installation
-
-The easiest way to install the **rmarkdown** package is from within the [RStudio IDE](http://www.rstudio.com/ide/download/preview), but you don't need to explicitly install it or load it, as RStudio automatically does both when needed. A recent version of Pandoc (>= 1.12.3) is also required; RStudio also automatically includes this too so you do not need to download Pandoc if you plan to use rmarkdown from the RStudio IDE.
-
-If you want to use the rmarkdown package outside of RStudio, you can install the package from CRAN as follows:
-
-```r
-install.packages("rmarkdown")
+    # return their dependencies
+    html_dependencies_fonts("fab fa" %in% libs | "fas fa" %in% libs,"ion ion" %in% libs)
+}
 ```
 
-If you want to use the development version of the rmarkdown package (either with or without RStudio), you can install the package from GitHub via the [**remotes** package](https://remotes.r-lib.org):
+And replace the `navbar_link_text()` function in the `html_document.R` file with this:
+```
+navbar_link_text <- function(x, ...) {
 
-```r
-remotes::install_github('rstudio/rmarkdown')
+    if (!is.null(x$icon)) {
+        tagList(tags$span(class = paste(x$icon)), " ", x$text, ...)
+    }
+    else
+        tagList(x$text, ...)
+}
 ```
 
-If not using the RStudio IDE, you'll need to install a recent version of Pandoc (>= 1.12.3); see the [Pandoc installation instructions](https://rmarkdown.rstudio.com/docs/articles/pandoc.html) for help.
-
-### Usage
-
-The easiest way to make a new R Markdown document is from within RStudio. Go to _File > New File > R Markdown_. From the new file wizard, you may:
-
-+ Provide a document title (_optional but recommended_),
-+ Provide an author name (_optional but recommended_),
-+ Select a default output format- HTML is the recommended format for authoring, and you can switch the output format anytime (_required_), 
-+ Click **OK** (_required_).
-
-Once inside your new `.Rmd` file, you should see some boilerplate text that includes code chunks. Use the "Knit" button in the RStudio IDE to render the file and preview the output with a single click or use the keyboard shortcut Cmd/Ctrl + Shift + K. 
-
-You can also delete all the text below the YAML frontmatter and fill in your own `.Rmd` by:
-
-+ Adding code chunks (keyboard shortcut: `Ctrl + Alt + I`; OS X: `Cmd + Option + I`),
-+ Writing prose with [Markdown formatting](https://www.markdowntutorial.com/), and
-+ Running each code chunk interactively by clicking the ![The run button](https://rmarkdown.rstudio.com/images/notebook-run-chunk.png) icon within RStudio. 
-
-You can also click "Knit to HTML" again to render the full document with all code chunks. For more help getting started in R Markdown, please see the [R Markdown website](https://rmarkdown.rstudio.com/lesson-1.html) or use the **"Get Started"** links at the top of this page.
-
-### Getting help
-
-There are two main places to get help:
-
-1. The [RStudio community](https://community.rstudio.com/c/R-Markdown) is a friendly place to ask any questions about rmarkdown and the R Markdown family of packages.
-
-1. [Stack Overflow](https://stackoverflow.com/questions/tagged/r-markdown) is a great source of answers to common rmarkdown questions. It is also a great place to get help, once you have created a reproducible example that illustrates your problem.
-
+After making these changes, you have to spell out the entire font awesome icon type in the site menu, e.g. `fab fa-python` instead of just `fa-python`.
